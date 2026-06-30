@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Game Theory Engine v1.2 — Memory Ledger</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root{color-scheme:dark;--bg:#070914;--panel:#111827;--panel2:#172033;--text:#e5e7eb;--muted:#9ca3af;--line:#2e3a55;--good:#86efac;--bad:#fca5a5;--accent:#93c5fd}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#1d2b4a 0%,var(--bg) 46%);color:var(--text);font-family:Inter,system-ui,Segoe UI,sans-serif}
+header{padding:22px;border-bottom:1px solid var(--line);background:rgba(7,9,20,.75);position:sticky;top:0;backdrop-filter:blur(10px)}h1{margin:0 0 6px;font-size:24px}.sub{color:var(--muted);font-size:14px}
+main{display:grid;grid-template-columns:340px 1fr;gap:16px;padding:16px}section{background:rgba(17,24,39,.9);border:1px solid var(--line);border-radius:16px;padding:16px}
+h2{font-size:16px;margin:0 0 12px}label{display:block;color:var(--muted);font-size:13px;margin:12px 0 6px}select,button{width:100%;padding:10px;border-radius:12px;border:1px solid var(--line);background:var(--panel2);color:var(--text)}button{cursor:pointer;margin-top:10px}button:hover{border-color:var(--accent)}
+.grid{display:grid;grid-template-columns:repeat(5,minmax(100px,1fr));gap:12px}.card{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:14px}.metric{font-size:26px;font-weight:800}.muted{color:var(--muted);font-size:13px}
+.identity{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}pre{white-space:pre-wrap;background:#080a12;border:1px solid var(--line);padding:12px;border-radius:12px;max-height:260px;overflow:auto;font-size:12px}
+table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid var(--line);padding:8px;text-align:left;font-size:12px}th{color:var(--muted);background:rgba(255,255,255,.03)}.cooperate{color:var(--good);font-weight:800}.defect{color:var(--bad);font-weight:800}
+@media(max-width:900px){main{grid-template-columns:1fr}.grid,.identity{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<header>
+<h1>Game Theory Core Engine v1.2</h1>
+<div class="sub">Memory Ledger upgrade: append-only continuity events for replay and audit.</div>
+</header>
+<main>
+<section>
+<h2>Controls</h2>
+<label>Carbon Strategy</label>
+<select id="p1Strategy"><option value="continuity">Continuity Biased</option><option value="tit">Tit for Tat</option><option value="cooperate">Always Cooperate</option><option value="defect">Always Defect</option><option value="random">Random</option></select>
+<label>Silicon Strategy</label>
+<select id="p2Strategy"><option value="cooperate">Always Cooperate</option><option value="continuity">Continuity Biased</option><option value="tit">Tit for Tat</option><option value="defect">Always Defect</option><option value="random">Random</option></select>
+<button onclick="step()">Run 1 Tick</button><button onclick="runMany(10)">Run 10 Ticks</button><button onclick="resetGame()">Reset</button>
+<h2 style="margin-top:20px">v1.2 Ledger</h2>
+<pre>Append-only events:
+- container_created
+- action_selected
+- state_transition
+- identity_update
+
+Ledger supports replay summary and audit export.</pre>
+</section>
+<section>
+<h2>Container Snapshot</h2>
+<div class="grid">
+<div class="card"><div class="metric" id="tick">0</div><div class="muted">Tick</div></div>
+<div class="card"><div class="metric" id="round">0</div><div class="muted">Round</div></div>
+<div class="card"><div class="metric" id="p1Score">0</div><div class="muted">Carbon Score</div></div>
+<div class="card"><div class="metric" id="p2Score">0</div><div class="muted">Silicon Score</div></div>
+<div class="card"><div class="metric" id="ledgerCount">0</div><div class="muted">Ledger Events</div></div>
+</div>
+<div class="identity">
+<div><h2>Carbon Identity</h2><pre id="p1Identity"></pre></div>
+<div><h2>Silicon Identity</h2><pre id="p2Identity"></pre></div>
+</div>
+<h2 style="margin-top:20px">Memory Ledger</h2>
+<table><thead><tr><th>#</th><th>Tick</th><th>Type</th><th>Actor</th><th>Payload</th></tr></thead><tbody id="ledger"></tbody></table>
+</section>
+</main>
+<script>
+let container;
+function makeIdentity(domain){return{context:{domain},intent:{objective:"preserve_continuity"},totality:{known_round:0,history_length:0,score:0},safety:{status:"stable"},revision:0}}
+function makeContainer(){return{label:"game-theory-core-engine-v1.2-memory-ledger",tick:0,state:{round:0,history:[],scores:{P1:0,P2:0}},identity:{P1:makeIdentity("carbon_side"),P2:makeIdentity("silicon_side")},memory:{P1:[],P2:[]},ledger:[]}}
+function ledgerEvent(type,actor,payload){container.ledger.push({sequence:container.ledger.length+1,tick:container.tick,type,actor,payload})}
+function choose(pid,strategy){const mem=container.memory[pid];if(strategy==="cooperate")return"cooperate";if(strategy==="defect")return"defect";if(strategy==="random")return Math.random()<.5?"cooperate":"defect";if(strategy==="tit"){if(mem.length===0)return"cooperate";const other=pid==="P1"?"P2":"P1";return mem[mem.length-1].actions[other]||"cooperate"}if(strategy==="continuity")return container.identity[pid].safety.status==="stable"?"cooperate":"defect";return"cooperate"}
+function payoff(a){if(a.P1==="cooperate"&&a.P2==="cooperate")return{P1:3,P2:3};if(a.P1==="defect"&&a.P2==="cooperate")return{P1:5,P2:0};if(a.P1==="cooperate"&&a.P2==="defect")return{P1:0,P2:5};return{P1:1,P2:1}}
+function updateIdentity(pid,action,pay){const id=container.identity[pid];id.context={domain:id.context.domain,last_round:container.state.round,last_action:action};id.intent={objective:id.intent.objective,last_payoff:pay};id.totality={known_round:container.state.round,history_length:container.state.history.length,score:container.state.scores[pid]};id.safety={status:pay>=0?"stable":"unsafe",last_payoff_nonnegative:pay>=0};id.revision+=1;ledgerEvent("identity_update",pid,{identity_after:id,payoff:pay})}
+function step(){const actions={P1:choose("P1",p1Strategy.value),P2:choose("P2",p2Strategy.value)};ledgerEvent("action_selected","P1",{action:actions.P1});ledgerEvent("action_selected","P2",{action:actions.P2});const pay=payoff(actions);container.tick+=1;container.state.round+=1;container.state.scores.P1+=pay.P1;container.state.scores.P2+=pay.P2;const rec={tick:container.tick,actions,payoffs:pay};container.state.history.push(rec);ledgerEvent("state_transition",null,rec);updateIdentity("P1",actions.P1,pay.P1);updateIdentity("P2",actions.P2,pay.P2);container.memory.P1.push(rec);container.memory.P2.push(rec);render()}
+function runMany(n){for(let i=0;i<n;i++)step()} function resetGame(){container=makeContainer();ledgerEvent("container_created",null,{label:container.label});render()}
+function render(){tick.textContent=container.tick;round.textContent=container.state.round;p1Score.textContent=container.state.scores.P1;p2Score.textContent=container.state.scores.P2;ledgerCount.textContent=container.ledger.length;p1Identity.textContent=JSON.stringify(container.identity.P1,null,2);p2Identity.textContent=JSON.stringify(container.identity.P2,null,2);ledger.innerHTML="";for(const e of container.ledger.slice().reverse().slice(0,80)){const tr=document.createElement("tr");tr.innerHTML=`<td>${e.sequence}</td><td>${e.tick}</td><td>${e.type}</td><td>${e.actor??"-"}</td><td><code>${JSON.stringify(e.payload).slice(0,120)}</code></td>`;ledger.appendChild(tr)}}
+resetGame();
+</script>
+</body>
+</html>
