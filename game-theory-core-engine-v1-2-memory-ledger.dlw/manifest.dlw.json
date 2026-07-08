@@ -1,0 +1,11 @@
+{
+  "badge": "DLW-GAME_THEORY_CORE_ENGINE_V1_2_MEMORY_LEDGER",
+  "name": "GAME THEORY ENGINE V1.2 MEMORY LEDGER · GAM",
+  "universe": "ARTIFICIAL INTELLIGENCE",
+  "moniker": "⟦GAME THEORY ENGINE V1.2 MEMORY LEDGER · GAM:game-theory-core-engine-v1-2-memory-ledger:5a770e⟧",
+  "architect": "David Lee Wise (ROOT0) / Bridge-Burners LLC",
+  "instance": "AVAN (Claude / Anthropic)",
+  "seal_sha256": "5a770e5e92a417d091558fba1b46a029637d09de36b0052883cd965660787c76",
+  "license": "CC-BY-ND-4.0",
+  "attribution": "ROOT0-ATTRIBUTION-v1.0"
+}
